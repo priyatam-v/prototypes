@@ -33,9 +33,10 @@ import java.util.concurrent.locks.ReentrantLock;
  *    context switches ("thundering herd").
  *
  *    Here we split that one wait set into two separate Conditions carved out
- *    of the SAME lock: `fullCondition` (producers wait here) and `emptyCondition`
- *    (consumers wait here). When put() adds an item, it only needs to wake
- *    consumers -> signalAll() on emptyCondition. It has no reason to wake other
+ *    of the SAME lock: `notFull` (producers wait here until the queue is no
+ *    longer full) and `notEmpty` (consumers wait here until the queue is no
+ *    longer empty). When put() adds an item, it only needs to wake
+ *    consumers -> signalAll() on notEmpty. It has no reason to wake other
  *    producers, so it doesn't. Same the other way in get(). This is the
  *    concrete, practical reason ReentrantLock+Condition exists.
  *
@@ -55,8 +56,8 @@ public class BlockingQueueUsingReentrant<T> {
     private Queue<T> queue = new LinkedList<>();
     private int capacity;
     private ReentrantLock lock = new ReentrantLock(true);
-    private Condition fullCondition = lock.newCondition(); // producers wait here
-    private Condition emptyCondition = lock.newCondition(); // consumers wait here
+    private Condition notFull = lock.newCondition();  // producers wait here until the queue is not full
+    private Condition notEmpty = lock.newCondition(); // consumers wait here until the queue is not empty
 
     public BlockingQueueUsingReentrant(int capacity) {
         this.capacity = capacity;
@@ -67,11 +68,12 @@ public class BlockingQueueUsingReentrant<T> {
         try {
             System.out.println("[Producer] trying to put " + item + "  (queue size: " + queue.size() + ")");
             while (queue.size() == capacity)
-                fullCondition.await(); // like wait(), but ONLY other producers share this wait set
+                notFull.await(); // wait until the queue is not full
 
             queue.add(item);
             System.out.println("[Producer] put " + item + " successfully");
-            emptyCondition.signalAll(); // wake ONLY consumers -- producers aren't affected
+            // wake ONLY consumers -- producers aren't affected
+            notEmpty.signalAll(); // announce that the queue is not empty.
         } finally {
             lock.unlock(); // MUST be in finally -- this is the one thing synchronized did for free
         }
@@ -81,11 +83,12 @@ public class BlockingQueueUsingReentrant<T> {
         lock.lock();
         try {
             while (queue.isEmpty())
-                emptyCondition.await();
+                notEmpty.await(); // wait until the queue is not empty
 
             T polledItem = queue.poll();
             System.out.println("                              [Consumer] took " + polledItem + "  (queue size: " + queue.size() + ")");
-            fullCondition.signalAll(); // wake ONLY producers -- consumers aren't affected
+            // wake ONLY producers -- consumers aren't affected
+            notFull.signalAll(); // announce that the queue is not full.
             return polledItem;
         } finally {
             lock.unlock();
