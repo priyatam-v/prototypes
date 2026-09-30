@@ -1,4 +1,4 @@
-package pessimistic_lock;
+package pessimisticlock;
 
 public class UnsafeCounter implements Counter {
 
