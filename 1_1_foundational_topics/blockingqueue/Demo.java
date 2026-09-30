@@ -1,6 +1,6 @@
 package blockingqueue;
 
-public class BlockingQueueDemo {
+public class Demo {
     public static void main(String[] args) throws InterruptedException {
         // Small capacity on purpose, so we can actually SEE blocking happen
 //        blockingqueue.BlockingQueueUsingSynchronization<Integer> queue = new blockingqueue.BlockingQueueUsingSynchronization<>(3);
