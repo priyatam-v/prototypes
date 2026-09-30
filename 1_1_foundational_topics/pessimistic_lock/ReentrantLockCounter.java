@@ -1,4 +1,4 @@
-package concurrency;
+package pessimistic_lock;
 
 import java.util.concurrent.locks.ReentrantLock;
 

@@ -1,4 +1,4 @@
-package concurrency;
+package pessimistic_lock;
 
 public class UnsafeCounter implements Counter {
 
